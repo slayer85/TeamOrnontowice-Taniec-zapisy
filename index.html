@@ -12,7 +12,8 @@
   header{ background:#1a1a1a; color:#fff; padding:16px 18px; border-bottom:3px solid var(--gold); }
   header h1{ margin:0; font-size:1.15rem; }
   header p{ margin:4px 0 0; font-size:.82rem; opacity:.8; }
-  main{ max-width:1080px; margin:0 auto; padding:16px; }
+  main{ width:90%; max-width:1800px; margin:0 auto; padding:16px; }
+  @media(max-width:900px){ main{ width:100%; } }
   .card{ background:var(--card); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
   .btn{ border:none; border-radius:9px; padding:11px 16px; font-size:.95rem; font-weight:700; cursor:pointer; }
   .btn-primary{ background:var(--gold); color:#1a1a1a; }
@@ -23,12 +24,17 @@
   .week-nav button{ width:40px; height:40px; border:none; border-radius:9px; background:#f0ede6; font-size:1.2rem; cursor:pointer; }
   .week-nav .lbl{ font-weight:700; min-width:150px; text-align:center; font-size:.95rem; }
   .day-title{ font-weight:800; margin:22px 0 10px; font-size:1.05rem; }
-  .trainer-cols{ display:flex; flex-direction:row; gap:10px; flex-wrap:wrap; align-items:flex-start; }
-  .trainer-col{ flex:1 1 140px; min-width:130px; background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  .trainer-cols{ display:flex; flex-direction:row; gap:8px; flex-wrap:nowrap; align-items:flex-start; }
+  .trainer-col{ flex:1 1 0; min-width:0; background:#fff; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
+  @media(max-width:760px){
+    .trainer-cols{ flex-wrap:wrap; }
+    .trainer-col{ flex:1 1 140px; min-width:140px; }
+  }
   .trainer-head{ background:#1a1a1a; color:#fff; font-weight:800; font-size:.9rem; padding:10px 13px; border-bottom:3px solid var(--accent); }
-  .trainer-col-body{ padding:10px; display:flex; flex-direction:column; gap:9px; }
-  .trainer-col-body .slot{ margin:0; flex-direction:column; align-items:stretch; gap:8px; }
-  .trainer-col-body .slot .btn{ width:100%; }
+  .trainer-col-body{ padding:7px; display:flex; flex-direction:column; gap:8px; }
+  .trainer-col-body .slot{ margin:0; flex-direction:column; align-items:stretch; gap:7px; padding:9px; }
+  .trainer-col-body .slot .time{ font-size:.88rem; }
+  .trainer-col-body .slot .btn{ width:100%; padding:9px 6px; }
   .trainer-col-body .slot .taken-lbl{ align-self:flex-start; }
   .days-row{ display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; }
   .day-block{ flex:1 1 340px; min-width:300px; }
