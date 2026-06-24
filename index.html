@@ -22,6 +22,12 @@
   .btn-primary:active{ filter:brightness(.92); }
   .btn-ghost{ background:#f0ede6; color:#1a1a1a; }
   input{ width:100%; padding:11px; border:1px solid var(--border); border-radius:9px; font-size:1rem; }
+  .seg{ display:flex; gap:8px; margin-bottom:14px; }
+  .seg-btn{ flex:1; padding:11px; border:1.5px solid var(--border); border-radius:9px; background:#fff; font-weight:700; font-size:.92rem; cursor:pointer; color:var(--muted); }
+  .seg-btn.active{ border-color:var(--gold); background:#fffdf4; color:#1a1a1a; box-shadow:inset 0 0 0 1px var(--gold); }
+  .price-line{ margin:12px 0 4px; font-size:.95rem; }
+  .price-line b{ font-size:1.15rem; color:var(--gold-d, #8a6d1f); }
+  .price-line span{ color:var(--muted); font-size:.82rem; }
   .week-nav{ display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:8px; }
   .week-nav button{ width:40px; height:40px; border:none; border-radius:9px; background:#f0ede6; font-size:1.2rem; cursor:pointer; }
   .week-nav .lbl{ font-weight:700; min-width:150px; text-align:center; font-size:.95rem; }
@@ -106,10 +112,16 @@
 <!-- Modal: zapisz parę -->
 <div class="modal-bg" id="bookModal">
   <div class="modal">
-    <h3>Zapisz parę</h3>
-    <div id="bookInfo" style="background:var(--bg);border-radius:9px;padding:10px;font-size:.88rem;margin-bottom:6px"></div>
-    <label class="hint">Nazwa Waszej pary</label>
+    <h3>Zapisz się na lekcję</h3>
+    <div id="bookInfo" style="background:var(--bg);border-radius:9px;padding:10px;font-size:.88rem;margin-bottom:12px"></div>
+    <label class="hint">Kto bierze udział?</label>
+    <div class="seg">
+      <button type="button" class="seg-btn active" id="segPara" onclick="setPeople(2)">Para · 2 osoby</button>
+      <button type="button" class="seg-btn" id="segSolo" onclick="setPeople(1)">Solista · 1 osoba</button>
+    </div>
+    <label class="hint" id="nameLbl">Nazwa Waszej pary</label>
     <input type="text" id="pairInput" placeholder="np. Jan Kowalski &amp; Anna Nowak" autocomplete="off">
+    <div class="price-line">Do zapłaty: <b id="priceVal">240 zł</b> <span>· 120 zł od osoby, płatne u trenera</span></div>
     <div class="row">
       <button class="btn btn-ghost" onclick="closeBook()">Anuluj</button>
       <button class="btn btn-primary" onclick="confirmBook()">Zapisz</button>
@@ -203,9 +215,21 @@ function dayHtml(name, dateObj, slots){
   return out;
 }
 
+let people=2;
+function setPeople(n){
+  people=n;
+  document.getElementById('segPara').classList.toggle('active', n===2);
+  document.getElementById('segSolo').classList.toggle('active', n===1);
+  document.getElementById('priceVal').textContent=(n*120)+' zł';
+  document.getElementById('nameLbl').textContent = n===1 ? 'Imię i nazwisko' : 'Nazwa Waszej pary';
+  const inp=document.getElementById('pairInput');
+  inp.placeholder = n===1 ? 'np. Anna Nowak' : 'np. Jan Kowalski & Anna Nowak';
+}
+
 function openBook(id, dayLabel, start, style, trainer){
   currentSlotId=id;
   document.getElementById('pairInput').value='';
+  setPeople(2);
   document.getElementById('bookInfo').innerHTML=`<strong>${dayLabel}</strong>, ${start} – ${addMin(start,45)}<br>${style==='LA'?'Latin (LA)':'Standard (ST)'} · ${trainer}`;
   document.getElementById('bookModal').classList.add('open');
   setTimeout(()=>document.getElementById('pairInput').focus(),50);
@@ -214,8 +238,8 @@ function closeBook(){ document.getElementById('bookModal').classList.remove('ope
 
 async function confirmBook(){
   const pair=document.getElementById('pairInput').value.trim();
-  if(!pair){ toast('Wpisz nazwę pary.', true); return; }
-  const { error } = await sb.rpc('book_slot',{ p_id:currentSlotId, p_pair:pair, p_pin:pin });
+  if(!pair){ toast(people===1?'Wpisz imię i nazwisko.':'Wpisz nazwę pary.', true); return; }
+  const { error } = await sb.rpc('book_slot',{ p_id:currentSlotId, p_pair:pair, p_pin:pin, p_people:people });
   if(error){ toast(error.message||'Nie udało się zapisać', true); render(); return; }
   closeBook();
   toast('Zapisano! 🎉');
