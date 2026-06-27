@@ -117,11 +117,11 @@
     <label class="hint">Kto bierze udział?</label>
     <div class="seg">
       <button type="button" class="seg-btn active" id="segPara" onclick="setPeople(2)">Para · 2 osoby</button>
-      <button type="button" class="seg-btn" id="segSolo" onclick="setPeople(1)">Solista · 1 osoba</button>
+      <button type="button" class="seg-btn" id="segSolo" onclick="setPeople(1)">Solistka / Solista · 1 osoba</button>
     </div>
     <label class="hint" id="nameLbl">Nazwa Waszej pary</label>
     <input type="text" id="pairInput" placeholder="np. Jan Kowalski &amp; Anna Nowak" autocomplete="off">
-    <div class="price-line">Do zapłaty: <b id="priceVal">240 zł</b> <span>· 120 zł od osoby, płatne u trenera</span></div>
+    <div class="price-line">Do zapłaty: <b id="priceVal">120 zł</b> <span>· za lekcję, płatne u trenera</span></div>
     <div class="row">
       <button class="btn btn-ghost" onclick="closeBook()">Anuluj</button>
       <button class="btn btn-primary" onclick="confirmBook()">Zapisz</button>
@@ -220,7 +220,7 @@ function setPeople(n){
   people=n;
   document.getElementById('segPara').classList.toggle('active', n===2);
   document.getElementById('segSolo').classList.toggle('active', n===1);
-  document.getElementById('priceVal').textContent=(n*120)+' zł';
+  document.getElementById('priceVal').textContent='120 zł';
   document.getElementById('nameLbl').textContent = n===1 ? 'Imię i nazwisko' : 'Nazwa Waszej pary';
   const inp=document.getElementById('pairInput');
   inp.placeholder = n===1 ? 'np. Anna Nowak' : 'np. Jan Kowalski & Anna Nowak';
