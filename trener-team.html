@@ -234,8 +234,9 @@ function changeWeek(d){ week+=d; load(); }
 
 async function load(){
   const days=weekDates(week);
-  const { data, error } = await sb.from('lessons').select('*')
-    .gte('date', days[0]).lte('date', days[6]).order('date').order('start_time');
+  // trainer_slots (PIN) zwraca terminy z nazwami par; bezpośredni odczyt tabeli
+  // pokazuje tylko znacznik zajętości (prywatność nazw). Sortowanie po stronie serwera.
+  const { data, error } = await sb.rpc('trainer_slots', { p_pin: pin, p_from: days[0], p_to: days[6] });
   const dot=document.getElementById('rtDot'), st=document.getElementById('statusTxt');
   if(error){ dot.className='dot'; st.textContent='Brak połączenia'; toast('Błąd pobierania: '+(error.message||error), true); return; }
   dot.className='dot on'; st.textContent='Połączono — zmiany widać na żywo';
