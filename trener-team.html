@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>Panel trenera — grafik | Team Ornontowice</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --ground:#f5f4f0; --text:#1a1a1a; --gold:#c9a84c; --gold-dark:#8a6d1f;
+    --paper:#fff; --line:#e2ded5; --muted:#6b6560; --free:#2e7d32;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--text);
+       font-family:system-ui,-apple-system,"Segoe UI",sans-serif;line-height:1.5;}
+  header{background:#1a1a1a;color:#fff;border-bottom:4px solid var(--gold);
+         padding:14px 16px;position:sticky;top:0;z-index:5;}
+  .hdr{max-width:900px;margin:0 auto;display:flex;align-items:center;gap:10px;}
+  .hdr h1{margin:0;font-size:1.05rem;font-weight:800;flex:1;}
+  .hdr .sub{font-size:.75rem;color:#c9c4b9;display:block;font-weight:400;}
+  main{max-width:900px;margin:0 auto;padding:16px;}
+  .hidden{display:none !important;}
+
+  .card{background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:18px;}
+  .hint{font-size:.85rem;color:var(--muted);}
+
+  input,select{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;
+       font-size:1rem;background:#fff;color:var(--text);}
+  input:focus,select:focus{outline:2px solid var(--gold);border-color:var(--gold);}
+  label{display:block;font-size:.82rem;font-weight:700;margin:12px 0 4px;color:#3a3631;}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border-radius:10px;
+       border:1.5px solid var(--line);background:#fff;color:var(--text);font-weight:700;
+       font-size:.92rem;padding:10px 14px;cursor:pointer;}
+  .btn:active{transform:scale(.97);}
+  .btn-primary{background:#1a1a1a;color:var(--gold);border-color:#1a1a1a;}
+  .btn-full{width:100%;margin-top:14px;}
+  .btn-sm{padding:7px 10px;font-size:.83rem;border-radius:8px;}
+  .btn-danger{color:#b3261e;border-color:#e5c9c6;}
+
+  .weekbar{display:flex;align-items:center;gap:8px;margin:0 0 14px;}
+  .weekbar .wk{flex:1;text-align:center;font-weight:800;font-size:.95rem;}
+  .weekbar button{width:44px;height:40px;font-size:1.1rem;}
+
+  .days{display:grid;gap:14px;}
+  @media(min-width:700px){ .days{grid-template-columns:1fr 1fr;} }
+  .day{background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden;}
+  .day-head{background:#1a1a1a;color:#fff;padding:9px 14px;font-weight:800;font-size:.92rem;
+            display:flex;justify-content:space-between;align-items:center;}
+  .day-head .cnt{color:var(--gold);font-size:.8rem;font-weight:700;}
+  .day-body{padding:10px;display:grid;gap:8px;}
+  .day .empty{color:var(--muted);font-size:.85rem;text-align:center;padding:10px 0;}
+
+  .lesson{border:1px solid var(--line);border-radius:11px;padding:10px 12px;background:#faf9f6;}
+  .lesson.la{border-left:4px solid var(--gold);}
+  .lesson.st{border-left:4px solid #1a1a1a;}
+  .l-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .l-time{font-weight:800;font-size:1.02rem;font-variant-numeric:tabular-nums;}
+  .l-style{font-size:.7rem;font-weight:800;padding:1px 7px;border-radius:20px;}
+  .l-style.la{background:var(--gold);color:#1a1a1a;}
+  .l-style.st{background:#1a1a1a;color:#fff;}
+  .l-trainer{font-size:.85rem;color:var(--muted);}
+  .l-price{margin-left:auto;font-size:.82rem;color:var(--muted);font-variant-numeric:tabular-nums;}
+  .l-pair{margin-top:5px;font-size:.92rem;}
+  .l-pair.free{color:var(--free);font-weight:700;}
+  .l-pair .who{font-weight:700;}
+  .l-actions{display:flex;gap:8px;margin-top:9px;}
+  .l-actions .grow{flex:1;}
+  .tag-weekend{font-size:.68rem;font-weight:800;background:#f0ede6;color:#5a554d;
+               border-radius:20px;padding:1px 8px;vertical-align:middle;}
+
+  .status{display:flex;align-items:center;gap:8px;font-size:.8rem;color:var(--muted);margin-top:14px;justify-content:center;}
+  .dot{width:9px;height:9px;border-radius:50%;background:#bbb;}
+  .dot.on{background:#16a34a;box-shadow:0 0 6px #16a34a;}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(20,20,19,.55);display:none;
+            align-items:flex-end;justify-content:center;z-index:20;}
+  @media(min-width:700px){ .modal-bg{align-items:center;} }
+  .modal-bg.open{display:flex;}
+  .modal{background:#fff;border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:440px;}
+  @media(min-width:700px){ .modal{border-radius:16px;} }
+  .modal h3{margin:0 0 4px;font-size:1.1rem;}
+  .modal .foot{display:flex;gap:10px;margin-top:18px;}
+  .modal .foot .btn{flex:1;}
+
+  .seg{display:flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden;}
+  .seg button{flex:1;padding:10px;border:0;background:#fff;font-weight:700;font-size:.9rem;cursor:pointer;color:var(--muted);}
+  .seg button.active{background:#1a1a1a;color:var(--gold);}
+
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#1a1a1a;color:#fff;
+         padding:10px 18px;border-radius:24px;font-size:.88rem;opacity:0;transition:opacity .25s;
+         pointer-events:none;z-index:30;max-width:90vw;text-align:center;}
+  #toast.show{opacity:1;}
+  #toast.err{background:#8f2018;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr">
+    <h1>Panel trenera <span class="sub">grafik i zapisy — Team Ornontowice</span></h1>
+    <button class="btn btn-sm hidden" id="lockBtn" onclick="lock()" title="Wyloguj">🔒</button>
+  </div>
+</header>
+
+<main>
+
+  <!-- Ekran PIN -->
+  <div id="pinScreen" class="card" style="max-width:420px;margin:24px auto">
+    <h3 style="margin-top:0">PIN trenera</h3>
+    <p class="hint" style="margin-top:0">Panel pokazuje grafik i zapisy par. Uczestnicy i wpłaty są dostępne wyłącznie w pełnej aplikacji na komputerze.</p>
+    <input type="password" id="pinInput" placeholder="PIN trenera" autocomplete="off">
+    <button class="btn btn-primary btn-full" onclick="enterPin()">Wejdź</button>
+    <div id="pinErr" class="hint" style="color:#b3261e;margin-top:8px"></div>
+  </div>
+
+  <!-- Aplikacja -->
+  <div id="app" class="hidden">
+    <div class="weekbar">
+      <button class="btn" onclick="changeWeek(-1)" aria-label="Poprzedni tydzień">‹</button>
+      <div class="wk" id="weekLabel"></div>
+      <button class="btn" onclick="changeWeek(1)" aria-label="Następny tydzień">›</button>
+    </div>
+    <div class="days" id="days"></div>
+    <div class="status"><span class="dot" id="rtDot"></span><span id="statusTxt">Łączę…</span></div>
+  </div>
+
+</main>
+
+<!-- MODAL: zapis pary -->
+<div class="modal-bg" id="bookModal">
+  <div class="modal">
+    <h3>Zapisz na lekcję</h3>
+    <p class="hint" id="bookInfo" style="margin:2px 0 0"></p>
+    <label>Kto bierze udział?</label>
+    <div class="seg" id="peopleSeg">
+      <button type="button" class="active" data-p="2" onclick="setPeople(2)">👯 Para</button>
+      <button type="button" data-p="1" onclick="setPeople(1)">🧍 Solistka / solista</button>
+    </div>
+    <label id="nameLabel">Nazwa pary</label>
+    <input id="pairName" placeholder="np. Kowalscy" autocomplete="off">
+    <div class="foot">
+      <button class="btn" onclick="closeModal('bookModal')">Anuluj</button>
+      <button class="btn btn-primary" onclick="confirmBook()">Zapisz</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: nowa lekcja (Czw/Pt) -->
+<div class="modal-bg" id="addModal">
+  <div class="modal">
+    <h3>Nowa lekcja</h3>
+    <p class="hint" id="addInfo" style="margin:2px 0 0"></p>
+    <label>Trener</label>
+    <input id="aTrainer" list="trainerList" placeholder="imię trenera" autocomplete="off">
+    <datalist id="trainerList"></datalist>
+    <label>Styl</label>
+    <div class="seg" id="styleSeg">
+      <button type="button" class="active" data-s="LA" onclick="setStyle('LA')">LA — Latin</button>
+      <button type="button" data-s="ST" onclick="setStyle('ST')">ST — Standard</button>
+    </div>
+    <label>Godzina rozpoczęcia (lekcja 45 min)</label>
+    <input id="aTime" type="time" step="300">
+    <div class="foot">
+      <button class="btn" onclick="closeModal('addModal')">Anuluj</button>
+      <button class="btn btn-primary" onclick="confirmAdd()">Dodaj lekcję</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL  = 'https://bcdpgzizmtolcdyyedza.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjZHBneml6bXRvbGNkeXllZHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNzQ1NTAsImV4cCI6MjA5Nzg1MDU1MH0.ZChKhwNLtwrIyoPYojAfTcCmXHzPynFbpSz_game3IY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+let pin = '', week = 0, lessons = [], currentId = null, curPeople = 2, curStyle = 'LA', addDate = null;
+
+// ---- daty ----
+function fmtDate(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function parseDate(s){ const [y,m,dd]=s.split('-').map(Number); return new Date(y,m-1,dd); }
+function fmtDM(s){ const d=parseDate(s); return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0'); }
+function mondayOf(off){ const d=new Date(); d.setHours(0,0,0,0); const dow=(d.getDay()+6)%7; d.setDate(d.getDate()-dow+off*7); return d; }
+function weekDates(off){ const m=mondayOf(off); return Array.from({length:7},(_,i)=>{ const d=new Date(m); d.setDate(m.getDate()+i); return fmtDate(d); }); }
+const DAY_PL = ['Niedziela','Poniedziałek','Wtorek','Środa','Czwartek','Piątek','Sobota'];
+function dayName(s){ return DAY_PL[parseDate(s).getDay()]; }
+function addMinutes(hhmm,mins){ const [h,m]=hhmm.split(':').map(Number); const t=h*60+m+mins;
+  return String(Math.floor(t/60)%24).padStart(2,'0')+':'+String(t%60).padStart(2,'0'); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// ---- toast / modale ----
+let toastT=null;
+function toast(msg,isErr){ const t=document.getElementById('toast'); t.textContent=msg;
+  t.className='show'+(isErr?' err':''); clearTimeout(toastT); toastT=setTimeout(()=>t.className='',3200); }
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+// ---- PIN ----
+async function enterPin(){
+  const val=document.getElementById('pinInput').value.trim();
+  const err=document.getElementById('pinErr');
+  if(!val){ err.textContent='Wpisz PIN.'; return; }
+  err.textContent='';
+  const { data, error } = await sb.rpc('check_trainer_pin', { p_pin: val });
+  if(error){ err.textContent='Błąd: '+(error.message||error.code); return; }
+  if(!data){ err.textContent='Nieprawidłowy PIN.'; sessionStorage.removeItem('panel_pin'); return; }
+  pin=val;
+  sessionStorage.setItem('panel_pin', pin);
+  document.getElementById('pinScreen').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  document.getElementById('lockBtn').classList.remove('hidden');
+  subscribe();
+  load();
+}
+function lock(){
+  sessionStorage.removeItem('panel_pin'); pin='';
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('lockBtn').classList.add('hidden');
+  document.getElementById('pinScreen').classList.remove('hidden');
+  document.getElementById('pinInput').value='';
+}
+
+// ---- dane ----
+function changeWeek(d){ week+=d; load(); }
+
+async function load(){
+  const days=weekDates(week);
+  const { data, error } = await sb.from('lessons').select('*')
+    .gte('date', days[0]).lte('date', days[6]).order('date').order('start_time');
+  const dot=document.getElementById('rtDot'), st=document.getElementById('statusTxt');
+  if(error){ dot.className='dot'; st.textContent='Brak połączenia'; toast('Błąd pobierania: '+(error.message||error), true); return; }
+  dot.className='dot on'; st.textContent='Połączono — zmiany widać na żywo';
+  lessons = data || [];
+  render();
+}
+
+function render(){
+  const days=weekDates(week);
+  document.getElementById('weekLabel').textContent = fmtDM(days[0])+' – '+fmtDM(days[6]);
+  // Czw/Pt zawsze widoczne (można dodawać lekcje); inne dni tylko gdy mają lekcje (szkolenia weekendowe)
+  const show = days.filter((d,i)=> i===3 || i===4 || lessons.some(l=>l.date===d));
+  const box=document.getElementById('days');
+  box.innerHTML = show.map(d=>{
+    const list = lessons.filter(l=>l.date===d);
+    const isCzwPt = ['Czwartek','Piątek'].includes(dayName(d));
+    return `<div class="day">
+      <div class="day-head"><span>${dayName(d)} ${fmtDM(d)}</span><span class="cnt">${list.length ? list.length+' lekcji' : ''}</span></div>
+      <div class="day-body">
+        ${list.length ? list.map(lessonHtml).join('') : '<div class="empty">Brak lekcji</div>'}
+        ${isCzwPt ? `<button class="btn btn-sm" onclick="openAdd('${d}')">＋ Lekcja</button>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+  // podpowiedzi trenerów w formularzu dodawania
+  const trainers=[...new Set(lessons.filter(l=>(l.kind||'weekly')==='weekly').map(l=>l.trainer))];
+  document.getElementById('trainerList').innerHTML = trainers.map(t=>`<option value="${esc(t)}">`).join('');
+}
+
+function lessonHtml(l){
+  const st=(l.style==='LA')?'la':'st';
+  const booked=(l.pair||'')!=='';
+  const weekend=(l.kind||'weekly')==='weekend';
+  const icon=(l.people===1)?'🧍':'👯';
+  return `<div class="lesson ${st}">
+    <div class="l-top">
+      <span class="l-time">${esc(l.start_time)} – ${addMinutes(l.start_time,45)}</span>
+      <span class="l-style ${st}">${l.style}</span>
+      <span class="l-trainer">${esc(l.trainer)}</span>
+      ${weekend?'<span class="tag-weekend">szkolenie</span>':''}
+      <span class="l-price">${l.price!=null?l.price:120} zł</span>
+    </div>
+    <div class="l-pair ${booked?'':'free'}">${booked ? icon+' <span class="who">'+esc(l.pair)+'</span>' : 'Wolny termin'}</div>
+    <div class="l-actions">
+      ${booked
+        ? `<button class="btn btn-sm grow" onclick="unbook('${l.id}')">✕ Wypisz</button>`
+        : `<button class="btn btn-sm btn-primary grow" onclick="openBook('${l.id}')">＋ Zapisz parę</button>`}
+      ${weekend ? '' : `<button class="btn btn-sm btn-danger" onclick="delLesson('${l.id}')" title="Usuń lekcję">🗑</button>`}
+    </div>
+  </div>`;
+}
+
+// ---- zapis / wypis pary ----
+function setPeople(p){ curPeople=p;
+  document.querySelectorAll('#peopleSeg button').forEach(b=>b.classList.toggle('active',+b.dataset.p===p));
+  document.getElementById('nameLabel').textContent = p===1 ? 'Imię i nazwisko solistki / solisty' : 'Nazwa pary';
+}
+function openBook(id){
+  const l=lessons.find(x=>x.id===id); if(!l) return;
+  currentId=id; setPeople(2);
+  document.getElementById('pairName').value='';
+  document.getElementById('bookInfo').textContent =
+    dayName(l.date)+' '+fmtDM(l.date)+', '+l.start_time+' – '+addMinutes(l.start_time,45)+' · '+l.style+' · '+l.trainer;
+  openModal('bookModal');
+}
+async function confirmBook(){
+  const name=document.getElementById('pairName').value.trim();
+  if(!name){ toast('Wpisz nazwę pary lub imię solisty.', true); return; }
+  const { error } = await sb.rpc('trainer_set_pair', { p_pin: pin, p_id: currentId, p_pair: name, p_people: curPeople });
+  if(error){ toast('Nie udało się zapisać: '+(error.message||error), true); return; }
+  closeModal('bookModal'); toast('Zapisano: '+name); load();
+}
+async function unbook(id){
+  const l=lessons.find(x=>x.id===id); if(!l) return;
+  if(!confirm('Wypisać „'+l.pair+'" z lekcji '+l.start_time+'?')) return;
+  const { error } = await sb.rpc('trainer_set_pair', { p_pin: pin, p_id: id, p_pair: '', p_people: 2 });
+  if(error){ toast('Nie udało się wypisać: '+(error.message||error), true); return; }
+  toast('Termin zwolniony'); load();
+}
+
+// ---- usuwanie lekcji (tylko Czw/Pt; szkolenia zarządzane z komputera) ----
+async function delLesson(id){
+  const l=lessons.find(x=>x.id===id); if(!l) return;
+  const extra = l.pair ? '\nNa tę lekcję zapisana jest para: '+l.pair+'!' : '';
+  if(!confirm('Usunąć lekcję '+l.start_time+' ('+l.trainer+')?'+extra)) return;
+  const { error } = await sb.rpc('trainer_delete_slot', { p_pin: pin, p_id: id });
+  if(error){ toast('Nie udało się usunąć: '+(error.message||error), true); return; }
+  toast('Lekcja usunięta'); load();
+}
+
+// ---- dodawanie lekcji (Czw/Pt przez publish_slots — zachowuje rezerwacje) ----
+function setStyle(s){ curStyle=s;
+  document.querySelectorAll('#styleSeg button').forEach(b=>b.classList.toggle('active',b.dataset.s===s)); }
+function openAdd(date){
+  addDate=date; setStyle('LA');
+  document.getElementById('aTime').value='16:00';
+  document.getElementById('addInfo').textContent = dayName(date)+' '+fmtDM(date)+' · lekcja indywidualna 45 min · 120 zł';
+  openModal('addModal');
+}
+async function confirmAdd(){
+  const trainer=document.getElementById('aTrainer').value.trim();
+  const time=document.getElementById('aTime').value;
+  if(!trainer){ toast('Wpisz imię trenera.', true); return; }
+  if(!time){ toast('Wybierz godzinę.', true); return; }
+  const toMin=t=>{ const [h,m]=t.split(':').map(Number); return h*60+m; };
+  const ns=toMin(time), ne=ns+45;
+  const clash=lessons.find(l=>l.trainer===trainer && l.date===addDate &&
+    (()=>{ const es=toMin(l.start_time), ee=es+45; return ns<ee && es<ne; })());
+  if(clash){ toast(trainer+' ma już lekcję '+clash.start_time+' – '+addMinutes(clash.start_time,45)+' tego dnia.', true); return; }
+  const weekly=lessons.filter(l=>(l.kind||'weekly')==='weekly').map(l=>({
+    id:l.id, date:l.date, weekday:l.weekday, trainer:l.trainer, style:l.style, start_time:l.start_time }));
+  weekly.push({ id:uid(), date:addDate, weekday:(parseDate(addDate).getDay()===4?'czwartek':'piatek'),
+    trainer:trainer, style:curStyle, start_time:time });
+  const { error } = await sb.rpc('publish_slots', { p_pin: pin, p_week_start: fmtDate(mondayOf(week)), p_slots: weekly });
+  if(error){ toast('Nie udało się dodać: '+(error.message||error), true); return; }
+  closeModal('addModal'); toast('Dodano lekcję '+time); load();
+}
+
+// ---- realtime ----
+function subscribe(){
+  sb.channel('panel-rt')
+    .on('postgres_changes',{ event:'*', schema:'public', table:'lessons' }, ()=>load())
+    .subscribe();
+}
+
+// ---- start ----
+const saved=sessionStorage.getItem('panel_pin');
+if(saved){ document.getElementById('pinInput').value=saved; enterPin(); }
+document.getElementById('pinInput').addEventListener('keydown',e=>{ if(e.key==='Enter') enterPin(); });
+</script>
+</body>
+</html>
