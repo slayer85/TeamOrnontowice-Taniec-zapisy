@@ -124,6 +124,7 @@
       <button class="btn" onclick="changeWeek(1)" aria-label="Następny tydzień">›</button>
     </div>
     <div class="days" id="days"></div>
+    <button class="btn" style="width:100%;margin-top:12px" onclick="openAddAnyDay()" title="Dodaj lekcję w dniu, którego nie ma na liście (np. święto)">＋ Lekcja w innym dniu</button>
     <div class="status"><span class="dot" id="rtDot"></span><span id="statusTxt">Łączę…</span></div>
   </div>
 
@@ -148,11 +149,15 @@
   </div>
 </div>
 
-<!-- MODAL: nowa lekcja (Czw/Pt) -->
+<!-- MODAL: nowa lekcja indywidualna -->
 <div class="modal-bg" id="addModal">
   <div class="modal">
     <h3>Nowa lekcja</h3>
     <p class="hint" id="addInfo" style="margin:2px 0 0"></p>
+    <div id="aDayRow" style="display:none">
+      <label>Dzień</label>
+      <select id="aDay"></select>
+    </div>
     <label>Trener</label>
     <input id="aTrainer" list="trainerList" placeholder="imię trenera" autocomplete="off">
     <datalist id="trainerList"></datalist>
@@ -246,12 +251,11 @@ function render(){
   const box=document.getElementById('days');
   box.innerHTML = show.map(d=>{
     const list = lessons.filter(l=>l.date===d);
-    const isCzwPt = ['Czwartek','Piątek'].includes(dayName(d));
     return `<div class="day">
       <div class="day-head"><span>${dayName(d)} ${fmtDM(d)}</span><span class="cnt">${list.length ? list.length+' lekcji' : ''}</span></div>
       <div class="day-body">
         ${list.length ? list.map(lessonHtml).join('') : '<div class="empty">Brak lekcji</div>'}
-        ${isCzwPt ? `<button class="btn btn-sm" onclick="openAdd('${d}')">＋ Lekcja</button>` : ''}
+        <button class="btn btn-sm" onclick="openAdd('${d}')">＋ Lekcja</button>
       </div>
     </div>`;
   }).join('');
@@ -321,32 +325,49 @@ async function delLesson(id){
   toast('Lekcja usunięta'); load();
 }
 
-// ---- dodawanie lekcji (Czw/Pt przez publish_slots — zachowuje rezerwacje) ----
+// ---- dodawanie lekcji indywidualnej (dowolny dzień, przez publish_slots — zachowuje rezerwacje) ----
+const WD_SLUG = ['niedziela','poniedzialek','wtorek','sroda','czwartek','piatek','sobota'];
 function setStyle(s){ curStyle=s;
   document.querySelectorAll('#styleSeg button').forEach(b=>b.classList.toggle('active',b.dataset.s===s)); }
 function openAdd(date){
-  addDate=date; setStyle('LA');
+  addDate=date;
+  document.getElementById('aDayRow').style.display='none';
+  setStyle('LA');
   document.getElementById('aTime').value='16:00';
   document.getElementById('addInfo').textContent = dayName(date)+' '+fmtDM(date)+' · lekcja indywidualna 45 min · 120 zł';
   openModal('addModal');
 }
+// Lekcja w dniu, którego nie ma jeszcze na liście (np. święto w środę) — wybór dnia w modalu.
+function openAddAnyDay(){
+  addDate=null;
+  const days=weekDates(week);
+  const sel=document.getElementById('aDay');
+  sel.innerHTML = days.map(d=>`<option value="${d}">${dayName(d)} ${fmtDM(d)}</option>`).join('');
+  sel.value = days[3];  // domyślnie czwartek
+  document.getElementById('aDayRow').style.display='';
+  setStyle('LA');
+  document.getElementById('aTime').value='16:00';
+  document.getElementById('addInfo').textContent='lekcja indywidualna 45 min · 120 zł';
+  openModal('addModal');
+}
 async function confirmAdd(){
+  const date=addDate || document.getElementById('aDay').value;
   const trainer=document.getElementById('aTrainer').value.trim();
   const time=document.getElementById('aTime').value;
   if(!trainer){ toast('Wpisz imię trenera.', true); return; }
   if(!time){ toast('Wybierz godzinę.', true); return; }
   const toMin=t=>{ const [h,m]=t.split(':').map(Number); return h*60+m; };
   const ns=toMin(time), ne=ns+45;
-  const clash=lessons.find(l=>l.trainer===trainer && l.date===addDate &&
+  const clash=lessons.find(l=>l.trainer===trainer && l.date===date &&
     (()=>{ const es=toMin(l.start_time), ee=es+45; return ns<ee && es<ne; })());
   if(clash){ toast(trainer+' ma już lekcję '+clash.start_time+' – '+addMinutes(clash.start_time,45)+' tego dnia.', true); return; }
   const weekly=lessons.filter(l=>(l.kind||'weekly')==='weekly').map(l=>({
     id:l.id, date:l.date, weekday:l.weekday, trainer:l.trainer, style:l.style, start_time:l.start_time }));
-  weekly.push({ id:uid(), date:addDate, weekday:(parseDate(addDate).getDay()===4?'czwartek':'piatek'),
+  weekly.push({ id:uid(), date:date, weekday:WD_SLUG[parseDate(date).getDay()],
     trainer:trainer, style:curStyle, start_time:time });
   const { error } = await sb.rpc('publish_slots', { p_pin: pin, p_week_start: fmtDate(mondayOf(week)), p_slots: weekly });
   if(error){ toast('Nie udało się dodać: '+(error.message||error), true); return; }
-  closeModal('addModal'); toast('Dodano lekcję '+time); load();
+  closeModal('addModal'); toast('Dodano lekcję '+dayName(date)+' '+time); load();
 }
 
 // ---- realtime ----
