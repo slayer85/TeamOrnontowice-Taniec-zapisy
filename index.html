@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>Zapisy na lekcje — Szkoła Tańca Team Ornontowice</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase.js"></script>
 <style>
   :root{ --gold:#c9a84c; --bg:#f5f4f0; --card:#fff; --border:#dedad2; --text:#1a1a1a; --muted:#6b6560; }
   *{ box-sizing:border-box; }
@@ -134,6 +134,15 @@ const SUPABASE_URL      = 'https://bcdpgzizmtolcdyyedza.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJjZHBneml6bXRvbGNkeXllZHphIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyNzQ1NTAsImV4cCI6MjA5Nzg1MDU1MH0.ZChKhwNLtwrIyoPYojAfTcCmXHzPynFbpSz_game3IY';
 // =====================================================================
 
+if (typeof supabase === 'undefined' || !supabase.createClient) {
+  try {
+    var _re = sessionStorage.getItem('taktReload');
+    if (!_re) { sessionStorage.setItem('taktReload','1'); setTimeout(function(){ location.reload(); }, 1200); }
+    document.documentElement.innerHTML = '<body style="margin:0;font-family:system-ui,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;background:#1a1a1a;color:#fff"><div><p style="margin:0 0 14px">Ładowanie aplikacji nie powiodło się — sprawdź internet i odśwież.</p><button onclick="location.reload()" style="padding:12px 20px;border:none;border-radius:9px;background:#c9a84c;color:#1a1a1a;font-weight:800;cursor:pointer">Odśwież</button></div></body>';
+  } catch(e) {}
+  throw new Error('supabase-js not loaded');
+}
+try { sessionStorage.removeItem('taktReload'); } catch(e){}
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let week = 0;            // 0 = bieżący tydzień
 let pin = '';
