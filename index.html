@@ -111,6 +111,7 @@
 
   <!-- Ekran grafiku -->
   <div id="app" class="hidden">
+    <div id="oknoInfo" class="card" style="display:none;border-left:4px solid var(--gold);font-size:.9rem"></div>
     <div class="app-layout">
       <div class="tab-rail">
         <button type="button" class="tab active" id="tabWeekly" onclick="switchKind('weekly')" title="Lekcje indywidualne">
@@ -199,6 +200,7 @@ try { sessionStorage.removeItem('taktReload'); } catch(e){}
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 let week = 0;            // 0 = bieżący tydzień
 let pin = '';
+let grupa = '';   // 'senior' | 'sport' | 'junior' | 'pair' — zwracane przez check_pin
 let currentSlotId = null;
 let viewKind = 'weekly'; // 'weekly' = lekcje indywidualne, 'weekend' = szkolenia
 let publicTrainings = null; // null = jeszcze nie pobrane
@@ -231,18 +233,40 @@ async function enterPin(){
   if(error){ err.textContent='Błąd: ' + (error.message || error.code || JSON.stringify(error)); console.error('check_pin error', error); return; }
   if(!data){ err.textContent='Nieprawidłowy PIN.'; sessionStorage.removeItem('zapisy_pin'); return; }
   pin = val;
+  grupa = (typeof data === 'string') ? data : '';
   err.textContent='';
   sessionStorage.setItem('zapisy_pin', pin);
+  sessionStorage.setItem('zapisy_grupa', grupa);
   document.getElementById('pinScreen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   subscribe();
   render();
 }
 
+
+// Kiedy otwierają się zapisy dla grupy tej pary. Serwer i tak odrzuci wcześniejszą
+// rezerwację, ale para powinna wiedzieć Z GÓRY, a nie dowiadywać się z komunikatu błędu.
+async function odswiezOknoInfo(monday){
+  const box = document.getElementById('oknoInfo'); if(!box) return;
+  const g = grupa || sessionStorage.getItem('zapisy_grupa') || '';
+  if(!g || g === 'pair'){ box.style.display='none'; return; }
+  try{
+    const { data, error } = await sb.rpc('booking_opens_at', { p_grp: g, p_date: fmtDate(monday) });
+    if(error || !data){ box.style.display='none'; return; }
+    const kiedy = new Date(data);
+    if(kiedy <= new Date()){ box.style.display='none'; return; }
+    const opis = kiedy.toLocaleString('pl-PL', { weekday:'long', day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    box.innerHTML = '<strong>Zapisy dla Twojej grupy otwierają się ' + opis + '.</strong>' +
+      '<div class="hint" style="margin-top:4px">Terminy widać już teraz, ale rezerwacja będzie możliwa dopiero o tej godzinie.</div>';
+    box.style.display='';
+  }catch(e){ box.style.display='none'; }
+}
+
 function changeWeek(d){ week+=d; render(); }
 
 async function render(){
   const monday=mondayOf(week), sunday=new Date(monday); sunday.setDate(monday.getDate()+6);
+  odswiezOknoInfo(monday);
   document.getElementById('weekLabel').textContent=(week===0?'Ten tydzień · ':'')+fmtDM(monday)+' – '+fmtDM(sunday);
 
   // Pobierz cały tydzień (Pn–Niedz) — pokazujemy każdy dzień, który ma opublikowane lekcje
